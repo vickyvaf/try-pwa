@@ -1,38 +1,29 @@
-import { useCallback, useEffect } from 'react';
-
-const Centrifuge = require('centrifuge');
-
-const unitId = '122a751b-2c25-4412-a945-87959a5dd450';
+import dayjs from 'dayjs';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
-  const connectWebSocketTracking = useCallback(() => {
-    console.log('render');
-
-    const centrifuge = new Centrifuge(process.env.WEBSOCKET);
-
-    centrifuge.on('connect', function (ctx: {}) {
-      console.log('websocket tracking connnect: ', ctx);
-    });
-
-    centrifuge.on('disconnect', function (ctx: {}) {
-      console.log('websocket tracking disconnect: ', ctx);
-    });
-
-    centrifuge.subscribe(
-      `${process.env.CHANNEL_TRACKING}/${unitId}`,
-      (ctx: { data: {} }) => {
-        console.log('unit: ', ctx.data);
-      }
-    );
-
-    centrifuge.connect();
-
-    return () => centrifuge.disconnect();
-  }, []);
+  const [position, setPosition] = useState<[number, number] | null>(null);
+  const [timeStamp, setTimeStamp] = useState<{} | null>(null);
 
   useEffect(() => {
-    connectWebSocketTracking();
+    const interval = setInterval(() => {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setPosition((prev) => [
+          position.coords.latitude,
+          position.coords.longitude,
+        ]);
+        setTimeStamp((prev) => position.timestamp);
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
-  return <>Home</>;
+  return (
+    <>
+      <h1>Homepage</h1>
+      <p>{JSON.stringify(position)}</p>
+      <p>{JSON.stringify(dayjs(timeStamp as Date).format('HH:mm:ss'))}</p>
+    </>
+  );
 }
